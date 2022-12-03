@@ -332,6 +332,7 @@ register(
     max_episode_steps=1000,
 )
 
+
 # Robotics
 # ----------------------------------------
 
@@ -847,7 +848,6 @@ for game in [
             nondeterministic=nondeterministic,
         )
 
-
 # Unit test
 # ---------
 
@@ -871,4 +871,25 @@ register(
     id="MemorizeDigits-v0",
     entry_point="gym.envs.unittest:MemorizeDigits",
     reward_threshold=20,
+)
+
+# Custom
+# ---------
+
+register(
+    id="Maze-v0",
+    entry_point="gym.envs.custom:Maze",
+    reward_threshold=1,
+)
+
+register(
+    id="MazeSimple-v0",
+    entry_point="gym.envs.custom:MazeSimple",
+    reward_threshold=1,
+)
+
+register(
+    id="MazeBigSimple-v0",
+    entry_point="gym.envs.custom:MazeBigSimple",
+    reward_threshold=1,
 )
