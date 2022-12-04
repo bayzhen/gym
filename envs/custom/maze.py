@@ -45,7 +45,7 @@ class Maze(gym.Env, EzPickle):
     step_count = 0
 
     # step上限
-    step_up_limit = 2000
+    step_up_limit = 200
 
     def __init__(self):
         # EzPickle是读取和存储硬盘上的数据的包，没用，但可以留着。
@@ -54,6 +54,12 @@ class Maze(gym.Env, EzPickle):
         # 迷宫的数据存储在self.data中，存储方式如下两行。
         self.data_sizeH, self.data_sizeW = self.maze_size_x * 2 + 1, self.maze_size_y * 2 + 1
         self.data = np.zeros(shape=(self.data_sizeH, self.data_sizeW), dtype=int)
+
+        # 状态空间
+        if self.count is None:
+            self.observation_space = spaces.Box(-np.inf, np.inf, shape=(self.data_sizeH, self.data_sizeW), dtype=int)
+        else:
+            self.observation_space = spaces.Box(0, np.inf, shape=(1, 2), dtype=int)
 
         # 不明意义，无用暂时留下
         self.seed()
@@ -64,10 +70,6 @@ class Maze(gym.Env, EzPickle):
         # 前一个奖励，
         self.prev_reward = None
 
-        # 状态空间
-        self.observation_space = spaces.Box(
-            -np.inf, np.inf, shape=(self.data_sizeH, self.data_sizeW), dtype=int
-        )
         # 动作空间
         self.action_space = spaces.Discrete(4)
 
@@ -129,11 +131,12 @@ class Maze(gym.Env, EzPickle):
     def random_prime_create_maze(self):
         point_list = [[1, 1]]
         two_points_list = [[[1, 1], [1, 2]], [[1, 1], [2, 1]]]
+        temp_count = self.count
         while len(two_points_list):
-            if self.count is not None:
-                position = self.count % len(two_points_list)
+            if temp_count is not None:
+                position = temp_count % len(two_points_list)
                 two_points = two_points_list[position]
-                self.count = self.count + 12
+                temp_count = temp_count + 12
             else:
                 two_points = random.choice(two_points_list)
             if self.get_edge(two_points) == 2:
@@ -272,16 +275,13 @@ class MazeSimple(Maze):
     # count在Maze中默认是None，当count为确定int时，迷宫的生成逻辑将固定。
     # 迷宫的生成逻辑为prime，当count固定，边缘的选择将固定，具体参考Maze.random_prime_create_maze()函数。
     count = 10
-    # 状态空间
-    observation_space = spaces.Box(
-        -np.inf, np.inf, shape=(1,2), dtype=int
-    )
 
     # 单步
     def step(self, action):
         state = np.array([self.current_x, self.current_y]).astype(int)
         reward = 0
         done = False
+        next_point = [self.current_x, self.current_y]
         if action == 0:
             next_point = [self.current_x - 1, self.current_y]
         elif action == 1:
@@ -297,31 +297,31 @@ class MazeSimple(Maze):
             )
         two_points = [[self.current_x, self.current_y], next_point]
         self.step_count = self.step_count + 1
-        if self.step_count >= self.step_up_limit:
-            done = True
-            return np.array(state, dtype=int), reward, done, {}
 
-        if self.get_edge(two_points) == 1 or self.get_edge(two_points) == 2:
-            reward = -1
-            return np.array(state, dtype=int), reward, done, {}
-        else:
-            if next_point == [self.destination_x, self.destination_y]:
+        if self.get_edge(two_points) == 0:
+            self.current_x = next_point[0]
+            self.current_y = next_point[1]
+            if self.current_x == self.destination_x and self.current_y == self.destination_y:
                 reward = 1
                 done = True
             else:
                 reward = 0
-                done = False
-            self.current_x, self.current_y = next_point[0], next_point[1]
-            return np.array(state, dtype=int), reward, done, {}
+        else:
+            reward = -1
+
+        obs = np.array([[self.current_x, self.current_y]], dtype=int)
+
+        if self.step_count >= self.step_up_limit:
+            done = True
+        return obs, reward, done, {}
 
 
 # MazeBigSimple的尺寸默认为40*40，
 class MazeBigSimple(MazeSimple):
-    # 同MazeSimple
-    count = 10
     # override迷宫尺寸
     maze_size_x = 40
     maze_size_y = 40
+
 
 # 测试函数
 def demo_maze(env, seed=None, render=False):
@@ -332,7 +332,7 @@ def demo_maze(env, seed=None, render=False):
     while True:
         a = random.choice([0, 1, 2, 3])
         s, r, done, info = env.step(a)
-        print(s,r,done)
+        print(s, r, done)
         total_reward += r
 
         if render:
@@ -349,4 +349,4 @@ def demo_maze(env, seed=None, render=False):
 
 
 if __name__ == "__main__":
-    demo_maze(Maze(), render=True)
+    demo_maze(MazeBigSimple(), render=True)
