@@ -59,7 +59,9 @@ class Maze(gym.Env, EzPickle):
         if self.count is None:
             self.observation_space = spaces.Box(-np.inf, np.inf, shape=(self.data_sizeH, self.data_sizeW), dtype=int)
         else:
-            self.observation_space = spaces.Box(0, np.inf, shape=(1, 2), dtype=int)
+            self.observation_space = spaces.Box(0,
+                                                self.maze_size_x if self.maze_size_x > self.maze_size_y else self.maze_size_y,
+                                                shape=(2,), dtype=int)
 
         # 不明意义，无用暂时留下
         self.seed()
@@ -309,7 +311,7 @@ class MazeSimple(Maze):
         else:
             reward = -1
 
-        obs = np.array([[self.current_x, self.current_y]], dtype=int)
+        obs = np.array([self.current_x, self.current_y], dtype=int)
 
         if self.step_count >= self.step_up_limit:
             done = True
